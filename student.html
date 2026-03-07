@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Student App</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; font-family: 'Cairo', sans-serif; margin: 0; padding: 0; }
+    body { background-color: #e9ecef; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+    
+    .app-container { width: 100%; max-width: 480px; background: #f8f9fa; height: 100vh; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+    
+    /* Header */
+    .header { background: #0056b3; color: white; padding: 18px 20px; text-align: center; font-size: 1.2rem; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Content Area */
+    .content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* UI Elements */
+    h2 { font-size: 1.3rem; color: #333; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    
+    .input-group { margin-bottom: 15px; position: relative; }
+    .input-group input, .input-group textarea { width: 100%; padding: 14px 15px; border: 1px solid #ddd; border-radius: 12px; font-size: 0.95rem; outline: none; background: #fff; }
+    .input-group textarea { height: 120px; resize: none; }
+    .input-group input:focus, .input-group textarea:focus { border-color: #0056b3; box-shadow: 0 0 0 3px rgba(0,86,179,0.1); }
+    
+    .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .btn-primary { background: linear-gradient(135deg, #0056b3, #007bff); color: white; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
+    .btn-success { background: linear-gradient(135deg, #28a745, #20c997); color: white; box-shadow: 0 4px 10px rgba(40,167,69,0.3); }
+    .btn:active { transform: scale(0.98); }
+
+    /* Cards */
+    .card { background: #fff; padding: 18px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #f0f0f0; }
+    .card h4 { color: #0056b3; margin-bottom: 10px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+    .card p { color: #555; font-size: 0.95rem; margin-bottom: 8px; }
+    
+    .offer-card { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; margin-top: 15px; border-radius: 12px; }
+    
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; background: #e9ecef; color: #495057; }
+    .status-badge.completed { background: #d4edda; color: #155724; }
+    .status-badge.pending { background: #fff3cd; color: #856404; }
+    .status-badge.in_progress { background: #cce5ff; color: #004085; }
+
+    /* Bottom Navigation */
+    .bottom-nav { position: absolute; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); border-top-left-radius: 24px; border-top-right-radius: 24px; z-index: 10; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #adb5bd; cursor: pointer; flex: 1; font-size: 0.8rem; font-weight: 600; transition: 0.3s; }
+    .nav-item i { font-size: 1.4rem; margin-bottom: 4px; transition: 0.3s; }
+    .nav-item.active { color: #0056b3; }
+    .nav-item.active i { transform: translateY(-3px); }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  
+  <div class="header">
+    <span>Techreex</span>
+    <i class="fas fa-bell"></i>
+  </div>
+
+  <div class="content">
+    
+    <div id="tab-new" class="tab-content active">
+      <h2><i class="fas fa-plus-circle"></i> إنشاء طلب جديد</h2>
+      <div class="card">
+        <div class="input-group">
+          <input id="title" placeholder="عنوان الطلب (مثال: صيانة-معايرة-تركيب )">
+        </div>
+        <div class="input-group">
+          <textarea id="description" placeholder="اشرح المشكلة بالتفصيل..."></textarea>
+        </div>
+        <div class="input-group">
+          <input id="device_type" placeholder="نوع الجهاز">
+        </div>
+        <button class="btn btn-primary" onclick="createRequest()"><i class="fas fa-paper-plane"></i> إرسال الطلب</button>
+      </div>
+    </div>
+
+    <div id="tab-requests" class="tab-content">
+      <h2><i class="fas fa-list-alt"></i> طلباتي الحالية</h2>
+      <div id="requests">
+        <div style="text-align: center; color: #888; margin-top: 20px;"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري التحميل...</div>
+      </div>
+      <div id="offers_section"></div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="switchTab('tab-new', this)">
+      <i class="fas fa-pen-square"></i>
+      <span>طلب جديد</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('tab-requests', this); loadRequests();">
+      <i class="fas fa-tasks"></i>
+      <span>طلباتي</span>
+    </div>
+    <div class="nav-item" onclick="alert('صفحة الإعدادات قيد التطوير')">
+      <i class="fas fa-user-cog"></i>
+      <span>حسابي</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// --- UI Tab Switcher Logic (لا تؤثر على قاعدة البيانات) ---
+function switchTab(tabId, element) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  element.classList.add('active');
+  if(tabId === 'tab-new') document.getElementById('offers_section').innerHTML = '';
+}
+
+// --- Supabase Logic (لم يتم تغيير أي شيء يخص الربط) ---
+const { createClient } = supabase;
+const client = createClient(
+  'https://fxdmunpqltegpzmvaius.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4ZG11bnBxbHRlZ3B6bXZhaXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU3NTIsImV4cCI6MjA4NzI3MTc1Mn0.3RV8yLapxbeWw4uNYrou2r8ikuXwWY_7AGC6O976Y48'
+);
+
+async function createRequest() {
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) { alert("يجب تسجيل الدخول!"); return; }
+
+  const titleVal = document.getElementById("title").value;
+  const descVal = document.getElementById("description").value;
+  const deviceVal = document.getElementById("device_type").value;
+
+  if (!titleVal || !descVal || !deviceVal) {
+    alert("يرجى تعبئة جميع حقول الطلب");
+    return;
+  }
+
+  const { error } = await client.from("service_requests").insert({
+    student_id: user.id,
+    title: titleVal,
+    description: descVal,
+    device_type: deviceVal
+  });
+
+  if (error) alert("خطأ: " + error.message);
+  else {
+    alert("تم الإرسال بنجاح!");
+    document.getElementById("title").value = '';
+    document.getElementById("description").value = '';
+    document.getElementById("device_type").value = '';
+    document.querySelectorAll('.nav-item')[1].click(); // الانتقال التلقائي لتاب الطلبات
+  }
+}
+
+async function loadRequests() {
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) return;
+
+  const { data, error } = await client
+    .from("service_requests")
+    .select("*")
+    .eq("student_id", user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) { console.error(error); return; }
+
+  // تحديث شكل الكروت باستخدام HTML الجديد دون تغيير المتغيرات
+  document.getElementById("requests").innerHTML = data.map(r => `
+    <div class="card">
+      <h4><i class="fas fa-tools"></i> ${r.title}</h4>
+      <p><strong>الجهاز:</strong> ${r.device_type}</p>
+      <p><strong>الحالة:</strong> <span class="status-badge ${r.status}">${r.status}</span></p>
+      <div style="display:flex; gap:10px; margin-top:15px;">
+        <button class="btn btn-primary" style="padding:10px; flex:1; font-size:0.9rem;" onclick="viewOffers('${r.id}', '${r.title}')"><i class="fas fa-eye"></i> العروض</button>
+        ${r.status === 'completed' ? `<button class="btn btn-success" style="padding:10px; flex:1; font-size:0.9rem;" onclick="confirmRequest('${r.id}')"><i class="fas fa-check-double"></i> تأكيد الإنجاز</button>` : ''}
+      </div>
+    </div>
+  `).join("");
+}
+
+async function confirmRequest(id) {
+  const { error } = await client
+    .from("service_requests")
+    .update({ status: 'completed' })
+    .eq('id', id);
+    
+  if (error) alert("خطأ في التأكيد: " + error.message);
+  else loadRequests();
+}
+
+async function viewOffers(requestId, requestTitle) {
+  const offersSection = document.getElementById("offers_section");
+  offersSection.innerHTML = "<div style='text-align:center; padding:20px;'><i class='fas fa-circle-notch fa-spin'></i> جاري جلب العروض...</div>";
+  
+  // تمرير الشاشة للأسفل لرؤية العروض براحة في الموبايل
+  setTimeout(() => { offersSection.scrollIntoView({ behavior: "smooth" }); }, 100);
+
+  const { data, error } = await client
+    .from("service_offers")
+    .select("*")
+    .eq("request_id", requestId);
+
+  if (error) {
+    offersSection.innerHTML = `<p style="color:red; text-align:center;">خطأ: ${error.message}</p>`;
+    return;
+  } 
+  
+  if (data.length === 0) {
+    offersSection.innerHTML = `<div class="card" style="text-align:center;"><h4>العروض: ${requestTitle}</h4><p>لا توجد عروض مقدمة حتى الآن.</p></div>`;
+    return;
+  }
+
+  let offersHTML = `<h3 style="margin-top:20px; font-size:1.1rem; color:#0056b3;"><i class="fas fa-handshake"></i> العروض لطلب: ${requestTitle}</h3>`;
+  
+  data.forEach(offer => {
+    offersHTML += `
+      <div class="offer-card">
+        <p><i class="fas fa-money-bill-wave text-success"></i> <strong>السعر المقترح:</strong> ${offer.proposed_price}</p>
+        <p><i class="fas fa-clock text-warning"></i> <strong>المدة المقترحة:</strong> ${offer.proposed_duration_days} أيام</p>
+        <p><strong>حالة العرض:</strong> <span class="status-badge">${offer.status}</span></p>
+        <button class="btn btn-success" style="margin-top:10px;" onclick="acceptOffer('${offer.id}', '${requestId}')"><i class="fas fa-check-circle"></i> قبول هذا العرض</button>
+      </div>
+    `;
+  });
+
+  offersSection.innerHTML = offersHTML;
+}
+
+async function acceptOffer(offerId, requestId) {
+  if (!confirm("هل أنت متأكد من قبول هذا العرض؟")) return;
+
+  try {
+    const { error: offerError } = await client
+      .from("service_offers")
+      .update({ status: 'accepted' }) 
+      .eq('id', offerId);
+
+    if (offerError) {
+       console.error("Offer Error:", offerError);
+       alert("فشل تحديث العرض: " + offerError.message + "\nDetails: " + offerError.details);
+       return;
+    }
+
+    const { error: requestError } = await client
+      .from("service_requests")
+      .update({ 
+        selected_offer_id: offerId,
+        status: 'in_progress' 
+      })
+      .eq('id', requestId);
+
+    if (requestError) {
+       console.error("Request Error:", requestError);
+       alert("فشل تحديث الطلب: " + requestError.message + "\nDetails: " + requestError.details);
+       return;
+    }
+
+    alert("تم القبول بنجاح!");
+    document.getElementById("offers_section").innerHTML = "";
+    loadRequests();
+
+  } catch (err) {
+    alert("خطأ غير متوقع: " + err.message);
+  }
+}
+
+client.auth.onAuthStateChange((event, session) => {
+  if (session && session.user) {
+    loadRequests();
+  } else {
+    document.getElementById("requests").innerHTML = "<div class='card' style='text-align:center;'><p>يرجى تسجيل الدخول لعرض طلباتك.</p></div>";
+  }
+});
+</script>
+
+</body>
+</html>

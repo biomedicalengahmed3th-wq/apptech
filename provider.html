@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Provider App</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; font-family: 'Cairo', sans-serif; margin: 0; padding: 0; }
+    body { background-color: #e9ecef; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+    
+    .app-container { width: 100%; max-width: 480px; background: #f8f9fa; height: 100vh; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+    
+    /* Header */
+    .header { background: #20c997; color: white; padding: 18px 20px; text-align: center; font-size: 1.2rem; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Content Area */
+    .content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px; overflow-x: hidden; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    h2 { font-size: 1.2rem; color: #333; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    
+    /* Cards */
+    .card { background: #fff; padding: 18px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid #f0f0f0; width: 100%; }
+    .active-card { border: 2px solid #20c997; background-color: #f0fdf4; box-shadow: 0 4px 15px rgba(32, 201, 151, 0.15); }
+    
+    .card h4 { color: #333; margin-bottom: 8px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+    .card p { color: #666; font-size: 0.95rem; margin-bottom: 10px; line-height: 1.5; word-break: break-word; }
+    
+    /* Micro Inputs for Offer */
+    .offer-inputs { display: flex; gap: 10px; margin-bottom: 15px; margin-top: 15px; background: #f8f9fa; padding: 10px; border-radius: 12px; width: 100%; }
+    .offer-inputs input { flex: 1; min-width: 0; width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; outline: none; text-align: center; }
+    .offer-inputs input:focus { border-color: #20c997; }
+
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .btn-primary { background: linear-gradient(135deg, #0056b3, #007bff); color: white; }
+    .btn-success { background: linear-gradient(135deg, #28a745, #20c997); color: white; }
+    .btn:active { transform: scale(0.98); }
+
+    /* Bottom Navigation */
+    .bottom-nav { position: absolute; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); border-top-left-radius: 24px; border-top-right-radius: 24px; z-index: 10; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #adb5bd; cursor: pointer; flex: 1; font-size: 0.8rem; font-weight: 600; transition: 0.3s; }
+    .nav-item i { font-size: 1.4rem; margin-bottom: 4px; transition: 0.3s; }
+    .nav-item.active { color: #20c997; }
+    .nav-item.active i { transform: translateY(-3px); }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  
+  <div class="header">
+    <span>Techreex</span>
+    <i class="fas fa-bell"></i>
+  </div>
+
+  <div class="content">
+    
+    <div id="tab-market" class="tab-content active">
+      <h2><i class="fas fa-bullhorn text-primary"></i> سوق الطلبات (المتاحة)</h2>
+      <div id="requests">
+         <div style="text-align: center; color: #888; margin-top: 20px;"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري التحميل...</div>
+      </div>
+    </div>
+
+    <div id="tab-mywork" class="tab-content">
+      <h2><i class="fas fa-briefcase text-success"></i> أعمالي الحالية (قيد التنفيذ)</h2>
+      <div id="active_work">
+         <div style="text-align: center; color: #888; margin-top: 20px;"><i class="fas fa-spinner fa-spin fa-2x"></i><br>جاري التحميل...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="switchTab('tab-market', this); loadOpenRequests();">
+      <i class="fas fa-store"></i>
+      <span>السوق</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('tab-mywork', this); loadMyWork();">
+      <i class="fas fa-hard-hat"></i>
+      <span>أعمالي</span>
+    </div>
+    <div class="nav-item" onclick="alert('ملفك الشخصي هنا')">
+      <i class="fas fa-user-cog"></i>
+      <span>حسابي</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// --- UI Tab Switcher Logic ---
+function switchTab(tabId, element) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  element.classList.add('active');
+}
+
+// --- Supabase Logic (الأصلي كما هو) ---
+const { createClient } = supabase;
+const client = createClient(
+  'https://fxdmunpqltegpzmvaius.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4ZG11bnBxbHRlZ3B6bXZhaXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU3NTIsImV4cCI6MjA4NzI3MTc1Mn0.3RV8yLapxbeWw4uNYrou2r8ikuXwWY_7AGC6O976Y48'
+);
+
+async function loadOpenRequests() {
+  const { data, error } = await client
+    .from("service_requests")
+    .select("*")
+    .eq("status", "pending")
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    document.getElementById("requests").innerHTML = "<div class='card' style='text-align:center;'>خطأ في جلب البيانات</div>";
+    return;
+  }
+
+  if (data.length === 0) {
+    document.getElementById("requests").innerHTML = "<div class='card' style='text-align:center;'><p>لا توجد طلبات مفتوحة حالياً. جرب لاحقاً!</p></div>";
+    return;
+  }
+
+  document.getElementById("requests").innerHTML = data.map(r => `
+    <div class="card">
+      <h4><i class="fas fa-wrench" style="color:#0056b3;"></i> ${r.title}</h4>
+      <p style="background:#f8f9fa; padding:10px; border-radius:8px; border-right:3px solid #0056b3;">${r.description}</p>
+      <p><i class="fas fa-microchip"></i> <strong>الجهاز:</strong> ${r.device_type}</p>
+      
+      <div class="offer-inputs">
+        <input id="price_${r.id}" type="number" placeholder="سعر العرض ($)">
+        <input id="days_${r.id}" type="number" placeholder="المدة (أيام)">
+      </div>
+      
+      <button class="btn btn-primary" onclick="makeOffer('${r.id}')"><i class="fas fa-paper-plane"></i> تقديم العرض</button>
+    </div>
+  `).join("");
+}
+
+async function loadMyWork() {
+  const { data: { user }, error: authError } = await client.auth.getUser();
+  if (authError || !user) {
+    document.getElementById("active_work").innerHTML = "<div class='card'><p>يرجى تسجيل الدخول أولاً.</p></div>";
+    return;
+  }
+
+  const { data, error } = await client
+    .from("service_offers")
+    .select(`
+      id,
+      proposed_price,
+      status,
+      service_requests!service_offers_request_id_fkey (
+        id,
+        title,
+        description,
+        device_type,
+        status
+      )
+    `)
+    .eq("provider_id", user.id)
+    .eq("status", "accepted");
+
+  if (error) {
+    console.error("تفاصيل الخطأ:", error);
+    document.getElementById("active_work").innerHTML = `<div class='card'><p style="color:red;">خطأ: ${error.message}</p></div>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    document.getElementById("active_work").innerHTML = "<div class='card' style='text-align:center;'><p>ليس لديك أعمال مقبولة حالياً.</p></div>";
+    return;
+  }
+
+  document.getElementById("active_work").innerHTML = data.map(item => `
+    <div class="card active-card">
+      <h4><i class="fas fa-check-circle text-success"></i> ${item.service_requests.title}</h4>
+      <p>${item.service_requests.description}</p>
+      <hr style="border:0; border-top:1px dashed #ccc; margin:10px 0;">
+      <p><strong><i class="fas fa-tag"></i> سعر عرضك المقبول:</strong> ${item.proposed_price}</p>
+      <p><strong><i class="fas fa-info-circle"></i> حالة الطلب:</strong> ${item.service_requests.status}</p>
+      <button class="btn btn-success" style="margin-top:15px;" onclick="markAsFinished('${item.service_requests.id}')"><i class="fas fa-flag-checkered"></i> إشعار بإتمام العمل</button>
+    </div>
+  `).join("");
+}
+
+async function makeOffer(requestId) {
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) { alert("يجب تسجيل الدخول!"); return; }
+
+  const price = document.getElementById(`price_${requestId}`).value;
+  const days = document.getElementById(`days_${requestId}`).value;
+
+  if (!price || !days) {
+    alert("يرجى إدخال السعر والمدة بصورة صحيحة");
+    return;
+  }
+
+  const { error } = await client.from("service_offers").insert({
+    request_id: requestId,
+    provider_id: user.id,
+    proposed_price: parseFloat(price),
+    proposed_duration_days: parseInt(days),
+    status: 'submitted'
+  });
+
+  if (error) alert("خطأ: " + error.message);
+  else {
+    alert("تم تقديم العرض بنجاح!");
+    loadOpenRequests(); // تحديث القائمة
+  }
+}
+
+async function markAsFinished(requestId) {
+    if(!confirm("هل أنت متأكد أنك أنهيت العمل بالكامل؟")) return;
+    
+    const { error } = await client
+      .from("service_requests")
+      .update({ status: 'completed' })
+      .eq('id', requestId);
+    
+    if (error) alert(error.message);
+    else {
+        alert("تم إرسال إشعار الانتهاء للطالب!");
+        loadMyWork();
+    }
+}
+
+// التشغيل الأولي
+loadOpenRequests();
+loadMyWork();
+</script>
+
+</body>
+</html>
