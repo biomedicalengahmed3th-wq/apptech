@@ -1,394 +1,239 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medical Engineering Service UI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MedTech - Auth</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; font-family: 'Cairo', sans-serif; margin: 0; padding: 0; }
+    body { background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
     
-    <style>
-        /* نفس التنسيقات الأصلية تماماً للحفاظ على الهوية البصرية */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Cairo', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+    /* App Container */
+    .app-container { width: 100%; max-width: 480px; background: #ffffff; height: 100vh; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+    @media (min-width: 481px) {
+        .app-container { height: 90vh; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
+    }
+    
+    .auth-wrapper { padding: 40px 30px; display: flex; flex-direction: column; flex: 1; justify-content: center; }
+    
+    /* Modern Logo Section */
+    .logo-container { text-align: center; margin-bottom: 40px; }
+    .logo-icon { width: 80px; height: 80px; background: linear-gradient(135deg, #00c6ff, #0072ff); border-radius: 24px; display: flex; justify-content: center; align-items: center; margin: 0 auto 15px; box-shadow: 0 10px 20px rgba(0, 114, 255, 0.2); }
+    .logo-icon i { font-size: 35px; color: #ffffff; }
+    .logo-container h1 { font-size: 1.8rem; color: #1e293b; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-container p { color: #64748b; font-size: 0.95rem; margin-top: 5px; }
 
-        body {
-            background-color: #ffffff;
-            color: #0e101a;
-            padding-bottom: 80px; 
-        }
+    /* Inputs */
+    .input-group { margin-bottom: 20px; position: relative; }
+    .input-group i.icon-main { position: absolute; right: 18px; top: 18px; color: #94a3b8; font-size: 1.1rem; transition: 0.3s; }
+    .input-group input, .input-group select { width: 100%; padding: 16px 18px 16px 45px; border: 1.5px solid #e2e8f0; border-radius: 16px; font-size: 0.95rem; color: #334155; outline: none; transition: all 0.3s ease; background: #f8fafc; font-weight: 600; appearance: none; 
+    text-align: right; 
+    direction: rtl;
+    
+    }
+    .input-group select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: left 1rem center; background-size: 1em; }
+    
+    .input-group input:focus, .input-group select:focus { border-color: #0072ff; background: #ffffff; box-shadow: 0 0 0 4px rgba(0, 114, 255, 0.1); }
+    .input-group input:focus + i.icon-main, .input-group select:focus + i.icon-main { color: #0072ff; }
 
-        /* 1. قسم الرأس */
-        .header-bg {
-            background: linear-gradient(135deg, #dbeafe 0%, #f3e8ff 50%, #ffffff 100%);
-            padding: 20px;
-            padding-bottom: 10px;
-            position: relative;
-        }
+    /* Buttons */
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 16px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; }
+    .btn-primary { background: linear-gradient(135deg, #0072ff, #00c6ff); color: white; box-shadow: 0 10px 20px rgba(0, 114, 255, 0.25); }
+    .btn-primary:active { transform: scale(0.97); box-shadow: 0 5px 10px rgba(0, 114, 255, 0.2); }
+    
+    /* View Switcher */
+    .switch-view { text-align: center; margin-top: 25px; color: #64748b; font-size: 0.95rem; font-weight: 600; }
+    .switch-view span { color: #0072ff; cursor: pointer; transition: 0.3s; padding: 5px; }
+    .switch-view span:hover { text-decoration: underline; }
 
-        .top-bar {
-            display: flex;
-            justify-content: flex-end; 
-            margin-bottom: 20px;
-        }
+    /* Animations */
+    .view-section { display: none; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    .view-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        .profile-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #8b3dff; 
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            position: relative;
-        }
-
-        .profile-icon::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 12px;
-            height: 12px;
-            background-color: #ff0000;
-            border: 2px solid white;
-            border-radius: 50%;
-        }
-
-        h1.welcome-text {
-            text-align: center;
-            color: #5146cd; 
-            font-size: 26px;
-            font-weight: 700;
-            margin-bottom: 25px;
-        }
-
-        /* 2. شريط البحث */
-        .search-container {
-            position: relative;
-            margin: 0 auto;
-            max-width: 95%;
-            margin-bottom: 10px;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 15px 50px 15px 20px;
-            border-radius: 30px;
-            border: 1px solid #e1e4e8;
-            background: white;
-            font-size: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-            outline: none;
-            color: #555;
-            text-align: right;
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 20px; 
-            top: 50%;
-            transform: translateY(-50%);
-            color: #000;
-            font-size: 18px;
-        }
-
-        /* إضافة جديدة: تنسيق قسم ملخص الطلبات */
-        .status-dashboard {
-            display: flex;
-            justify-content: space-between;
-            padding: 0 20px;
-            margin-top: 15px;
-            margin-bottom: 5px;
-        }
-
-        .status-card {
-            background: white;
-            width: 31%;
-            padding: 12px 5px;
-            border-radius: 16px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-            border: 1px solid #f2f3f5;
-            transition: transform 0.2s;
-        }
-
-        .status-card:active {
-            transform: scale(0.97);
-        }
-
-        .st-num {
-            font-size: 20px;
-            font-weight: 800;
-            display: block;
-            margin-bottom: 2px;
-            line-height: 1;
-        }
-
-        .st-lbl {
-            font-size: 11px;
-            color: #777;
-            font-weight: 600;
-        }
-        /* نهاية التنسيق الجديد */
-
-        /* 3. شبكة الخدمات */
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 20px 10px;
-            padding: 20px;
-            margin-top: 0px; /* تعديل بسيط للمسافة */
-        }
-
-        .grid-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            cursor: pointer;
-        }
-
-        .icon-circle {
-            width: 65px;
-            height: 65px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 26px; /* تصغير طفيف للأيقونات الطبية لتناسب الدائرة */
-            color: white;
-            position: relative;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            overflow: hidden; 
-        }
-
-        .item-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #333;
-            max-width: 85px; /* زيادة بسيطة للسماح بكلمات أطول */
-            line-height: 1.3;
-        }
-
-        /* الألوان */
-        .bg-orange { background-color: #ff7b00; }
-        .bg-teal { background-color: #00c4cc; }
-        .bg-green { background-color: #29c157; }
-        .bg-pink { background-color: #e726fb; }
-        .bg-red { background-color: #ff424f; }
-        .bg-blue { background-color: #5031f5; }
-        .bg-purple { background-color: #5146cd; }
-        .bg-grey { background-color: #f2f3f5; color: #555 !important; }
-
-        /* تخصيص الصورة */
-        .photo-edit-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        /* شارة "متاح" أو "جديد" */
-        .badge-new {
-            position: absolute;
-            top: -5px;
-            right: 0px;
-            background-color: #8b3dff;
-            color: white;
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-weight: bold;
-            z-index: 2;
-            border: 2px solid white;
-        }
-
-        /* 4. الشريط السفلي */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 70px;
-            background: white;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            border-top: 1px solid #eee;
-            z-index: 100;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: #777;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 20%;
-        }
-
-        .nav-item i {
-            font-size: 20px;
-            margin-bottom: 5px;
-        }
-
-        .nav-plus-btn {
-            width: 45px;
-            height: 45px;
-            background-color: #8b3dff;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            box-shadow: 0 4px 10px rgba(139, 61, 255, 0.4);
-            margin-bottom: px;
-        }
-        
-        .nav-plus-btn i {
-            font-size: 20px;
-            margin: 0;
-        }
-
-        .active-tab {
-            color: #8b3dff;
-        }
-
-    </style>
+  </style>
 </head>
 <body>
 
-    <div class="header-bg">
-        <div class="top-bar">
-            <div class="profile-icon"><i class="fa-regular fa-user"></i></div>
-        </div>
-        
-        <h1 class="welcome-text">بماذا يمكننا خدمتك اليوم؟</h1>
-        
-        <div class="search-container">
-            <input type="text" class="search-input" placeholder="ابحث عن مهندس ،...">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        </div>
+<div class="app-container">
+  <div class="auth-wrapper">
+    
+    <div class="logo-container">
+      <div class="logo-icon">
+        <i class="fas fa-laptop-medical"></i>
+      </div>
+      <h1>Techreex</h1>
+      <p>منصة الهندسة والصيانة الطبية</p>
     </div>
 
-    <div class="status-dashboard">
-        <div class="status-card">
-            <span class="st-num" style="color: #ff7b00;">2</span>
-            <span class="st-lbl">قيد التنفيذ</span>
-        </div>
-        <div class="status-card">
-            <span class="st-num" style="color: #29c157;">14</span>
-            <span class="st-lbl">مكتملة</span>
-        </div>
-        <div class="status-card">
-            <span class="st-num" style="color: #5146cd;">16</span>
-            <span class="st-lbl">كل الطلبات</span>
-        </div>
-    </div>
-    <div class="grid-container">
-        
-        <div class="grid-item">
-            <div class="icon-circle bg-orange">
-                <i class="fa-solid fa-screwdriver-wrench"></i>
-            </div>
-            <div class="item-label">صيانة وقائية</div>
-        </div>
+    <div id="login-view" class="view-section active">
+      <div class="input-group">
+        <input id="login_email" type="email" placeholder="البريد الإلكتروني">
+        <i class="fas fa-envelope icon-main"></i>
+      </div>
+      
+      <div class="input-group">
+        <input id="login_password" type="password" placeholder="كلمة المرور">
+        <i class="fas fa-lock icon-main"></i>
+      </div>
 
-        <div class="grid-item">
-            <div class="icon-circle bg-teal">
-                <i class="fa-solid fa-scale-balanced"></i>
-            </div>
-            <div class="item-label">طلب معايرة</div>
-        </div>
+      <button class="btn btn-primary" onclick="signIn()">
+        تسجيل الدخول <i class="fas fa-arrow-left"></i>
+      </button>
 
-        <div class="grid-item">
-            <div class="icon-circle bg-green">
-                <i class="fa-solid fa-power-off"></i>
-            </div>
-            <div class="item-label">تركيب وتشغيل</div>
-        </div>
-
-        
-
-        <div class="grid-item">
-            <div class="icon-circle bg-red">
-                <i class="fa-solid fa-truck-medical"></i>
-            </div>
-            <div class="item-label">صيانة طارئة</div>
-        </div>
-
-        <div class="grid-item">
-            <div class="icon-circle bg-pink">
-                <i class="fa-solid fa-headset"></i>
-            </div>
-            <div class="item-label">استشارة فنية</div>
-        </div>
-
-     
-
-       
-
-        
-
-        
-
-        <div class="grid-item">
-            <div class="icon-circle bg-grey">
-                <i class="fa-solid fa-location-crosshairs"></i>
-            </div>
-            <div class="item-label">حالة الطلب</div>
-        </div>
-
-        
-
+      <div class="switch-view">
+        ليس لديك حساب؟ <span onclick="toggleView('signup-view')">سجل الآن</span>
+      </div>
     </div>
 
-    <div class="bottom-nav">
-        <div class="nav-item">
-            <i class="fa-solid fa-house"></i>
-            <span>الرئيسية</span>
-        </div>
-        <div class="nav-item">
-            <i class="fa-solid fa-file"></i>
-            <span>طلباتي</span>
-        </div>
-        <div class="nav-item">
-            <div class="nav-plus-btn">
-                <i class="fa-solid fa-plus"></i>
-            </div>
-            <span class="active-tab">طلب جديد</span>
-        </div>
-        <div class="nav-item">
-            <i class="fa-solid fa-message"></i>
-            <span>المحدثة</span>
-        </div>
-        <div class="nav-item">
-            <i class="fa-solid fa-gear"></i>
-            <span>الاعدادات</span>
-        </div>
+    <div id="signup-view" class="view-section">
+      <div class="input-group">
+        <input id="signup_name" type="text" placeholder="الاسم الكامل">
+        <i class="fas fa-user icon-main"></i>
+      </div>
+
+      <div class="input-group">
+        <input id="signup_phone" type="tel" placeholder="رقم الهاتف">
+        <i class="fas fa-phone icon-main"></i>
+      </div>
+      
+      <div class="input-group">
+        <input id="signup_email" type="email" placeholder="البريد الإلكتروني">
+        <i class="fas fa-envelope icon-main"></i>
+      </div>
+      
+      <div class="input-group">
+        <input id="signup_password" type="password" placeholder="كلمة المرور">
+        <i class="fas fa-lock icon-main"></i>
+      </div>
+
+      <div class="input-group">
+        <select id="signup_role">
+          <option value="student">طالب خدمة (مستشفى/عيادة)</option>
+          <option value="provider">مقدم خدمة (مهندس/فني)</option>
+        </select>
+        <i class="fas fa-user-tag icon-main"></i>
+      </div>
+
+      <button class="btn btn-primary" onclick="signUp()">
+        إنشاء حساب <i class="fas fa-user-plus"></i>
+      </button>
+
+      <div class="switch-view">
+        لديك حساب بالفعل؟ <span onclick="toggleView('login-view')">تسجيل الدخول</span>
+      </div>
     </div>
 
-    <script>
-        // تأثير النقر البسيط
-        document.querySelectorAll('.grid-item, .nav-item, .status-card').forEach(item => {
-            item.addEventListener('click', function() {
-                this.style.transform = "scale(0.95)";
-                setTimeout(() => {
-                    this.style.transform = "scale(1)";
-                }, 100);
-            });
-        });
-    </script>
+  </div>
+</div>
+
+<script>
+// --- UI Logic (Switch between Login and Signup) ---
+function toggleView(viewId) {
+  document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+}
+
+// --- Supabase Database Logic (Original Logic Kept Intact) ---
+const { createClient } = supabase;
+const client = createClient(
+  'https://fxdmunpqltegpzmvaius.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4ZG11bnBxbHRlZ3B6bXZhaXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU3NTIsImV4cCI6MjA4NzI3MTc1Mn0.3RV8yLapxbeWw4uNYrou2r8ikuXwWY_7AGC6O976Y48'
+);
+
+async function signUp() {
+  // Read from the new Signup fields
+  const email = document.getElementById("signup_email").value;
+  const password = document.getElementById("signup_password").value;
+  const full_name = document.getElementById("signup_name").value;
+  const phone = document.getElementById("signup_phone").value;
+  const role = document.getElementById("signup_role").value;
+
+  if (!email || !password || !full_name || !phone) {
+    alert("الرجاء تعبئة جميع الحقول للتسجيل");
+    return;
+  }
+
+  // Original Supabase Logic
+  const { data, error } = await client.auth.signUp({ email, password });
+
+  if (error) {
+    alert("خطأ في التسجيل: " + error.message);
+    return;
+  }
+
+  const user = data.user;
+  if (!user) {
+    alert("يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب");
+    return;
+  }
+
+  const { error: profileError } = await client.from("profiles").insert({
+    id: user.id,
+    role: role,
+    full_name: full_name,
+    phone: phone
+  });
+
+  if (profileError) {
+    alert("خطأ في إنشاء الملف الشخصي: " + profileError.message);
+    return;
+  }
+
+  if (role === "student") {
+    await client.from("student_profiles").insert({ user_id: user.id });
+  } else {
+    await client.from("provider_profiles").insert({
+      user_id: user.id,
+      specialization: "General"
+    });
+  }
+
+  alert("تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.");
+  // Switch automatically back to login screen after successful signup
+  toggleView('login-view');
+  document.getElementById("login_email").value = email; 
+}
+
+async function signIn() {
+  // Read from the new Login fields
+  const email = document.getElementById("login_email").value;
+  const password = document.getElementById("login_password").value;
+
+  if (!email || !password) {
+    alert("الرجاء إدخال البريد وكلمة المرور");
+    return;
+  }
+
+  // Original Supabase Logic
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    alert("خطأ في تسجيل الدخول: " + error.message);
+    return;
+  }
+
+  const { data: profile, error: profileError } = await client
+    .from("profiles")
+    .select("role")
+    .eq("id", data.user.id)
+    .single();
+
+  if (profileError) {
+    alert("لا يمكن جلب بيانات الملف الشخصي: " + profileError.message);
+    return;
+  }
+
+  if (profile.role === "student") {
+    window.location.href = "student.html";
+  } else {
+    window.location.href = "provider.html";
+  }
+}
+</script>
+
 </body>
 </html>
