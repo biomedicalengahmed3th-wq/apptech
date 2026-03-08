@@ -53,6 +53,41 @@
     .nav-item i { font-size: 1.4rem; margin-bottom: 4px; transition: 0.3s; }
     .nav-item.active { color: #0056b3; }
     .nav-item.active i { transform: translateY(-3px); }
+    
+    
+    
+   /* تنسيق الرسالة المنبثقة (Toast) */
+#toast {
+  visibility: hidden;
+  min-width: 250px;
+  background-color: #28a745; /* لون أخضر يدل على النجاح */
+  color: #fff;
+  text-align: center;
+  border-radius: 12px;
+  padding: 16px;
+  position: fixed;
+  z-index: 1000;
+  left: 50%;
+  bottom: 80px; /* لتظهر فوق شريط التنقل السفلي */
+  transform: translateX(-50%);
+  font-size: 1rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  opacity: 0;
+  transition: opacity 0.3s, bottom 0.3s;
+}
+#toast.show {
+  visibility: visible;
+  opacity: 1;
+  bottom: 100px; /* حركة بسيطة للأعلى عند الظهور */
+}
+ 
+    
+    
+    
+    
+    
+    
+    
   </style>
 </head>
 <body>
@@ -109,6 +144,15 @@
 
 </div>
 
+
+
+<div id="toast"></div>
+
+
+
+
+
+
 <script>
 // --- UI Tab Switcher Logic (لا تؤثر على قاعدة البيانات) ---
 function switchTab(tabId, element) {
@@ -148,7 +192,8 @@ async function createRequest() {
 
   if (error) alert("خطأ: " + error.message);
   else {
-    alert("تم الإرسال بنجاح!");
+    showToast("تم الإرسال بنجاح!");
+
     document.getElementById("title").value = '';
     document.getElementById("description").value = '';
     document.getElementById("device_type").value = '';
@@ -275,7 +320,28 @@ client.auth.onAuthStateChange((event, session) => {
     document.getElementById("requests").innerHTML = "<div class='card' style='text-align:center;'><p>يرجى تسجيل الدخول لعرض طلباتك.</p></div>";
   }
 });
+
+
+
+
+// دالة لإظهار الرسالة المنبثقة المخصصة
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.innerText = message;
+  toast.classList.add("show");
+  
+  // إخفاء الرسالة بعد 3 ثواني
+  setTimeout(function(){
+    toast.classList.remove("show");
+  }, 3000);
+}
+
+
+
 </script>
+
+
+
 
 </body>
 </html>
