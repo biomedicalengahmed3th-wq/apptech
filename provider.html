@@ -13,6 +13,10 @@
     await OneSignal.init({
       appId: "47e8687b-793a-4512-b51b-53c6b3d1777f"
     });
+    
+    // إظهار رسالة طلب الإذن للمستخدم بالاشتراك في الإشعارات
+    await OneSignal.Slidedown.promptPush();
+    
     // هذه الدالة تعطي حساب المستخدم الحالي "علامة" بأنه مهندس/مقدم خدمة
     OneSignal.User.addTag("role", "provider");
   });
