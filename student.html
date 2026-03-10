@@ -86,6 +86,51 @@
     
     
     
+    /* خلفية النافذة المنبثقة */
+.modal-overlay {
+  display: none; /* مخفية افتراضياً */
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* تعتيم الخلفية */
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px); /* ضبابية للخلفية */
+}
+
+/* صندوق الرسالة */
+.modal-box {
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  width: 85%;
+  max-width: 350px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  animation: modalScale 0.3s ease;
+}
+
+@keyframes modalScale {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-box p { margin-bottom: 20px; font-size: 1.1rem; color: #333; font-weight: 600; }
+
+.modal-btns { display: flex; gap: 10px; }
+
+.btn-cancel { background: #f8f9fa; color: #555; border: 1px solid #ddd; }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
   </style>
@@ -136,7 +181,8 @@
       <i class="fas fa-tasks"></i>
       <span>طلباتي</span>
     </div>
-    <div class="nav-item" onclick="alert('صفحة الإعدادات قيد التطوير')">
+    <div class="nav-item" 
+    onclick="showToast('صفحة الإعدادات قيد التطوير')">
       <i class="fas fa-user-cog"></i>
       <span>حسابي</span>
     </div>
@@ -147,6 +193,21 @@
 
 
 <div id="toast"></div>
+
+
+
+
+<div id="confirmModal" class="modal-overlay">
+  <div class="modal-box">
+    <p id="confirmMsg">هل أنت متأكد؟</p>
+    <div class="modal-btns">
+      <button id="btnYes" class="btn btn-success">نعم، موافق</button>
+      <button id="btnNo" class="btn btn-cancel">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+
 
 
 
@@ -179,7 +240,7 @@ async function createRequest() {
   const deviceVal = document.getElementById("device_type").value;
 
   if (!titleVal || !descVal || !deviceVal) {
-    alert("يرجى تعبئة جميع حقول الطلب");
+    showToast("يرجى تعبئة جميع حقول الطلب","warning");
     return;
   }
 
@@ -190,9 +251,50 @@ async function createRequest() {
     device_type: deviceVal
   });
 
-  if (error) alert("خطأ: " + error.message);
+  if (error) showToast("خطأ: " + error.message,"error");
   else {
     showToast("تم الإرسال بنجاح!");
+
+
+
+
+
+    // إرسال الإشعار عبر OneSignal
+    const sendNotification = async () => {
+      const appId = "47e8687b-793a-4512-b51b-53c6b3d1777f"; 
+      const restApiKey = "Os_v2_app_i7ugq63zhjcrfni3kpdlhulxp566xhzg7b5uuhmnh5eopw2qajhtwxe7bxxem2hitj3z72difczi5reuuijjtywyau2sputmhhmzlzi"; // المفتاح الذي شاركته
+
+      const notificationData = {
+        app_id: appId,
+        // هذا الفلتر مهم جداً: يضمن إرسال الإشعار لمن يمتلكون علامة "provider" فقط
+        filters: [
+          {"field": "tag", "key": "role", "relation": "=", "value": "provider"}
+        ],
+        headings: { "ar": "طلب خدمة جديد", "en": "New Service Request" },
+        contents: { "ar": "تم إضافة طلب جديد: " + titleVal, "en": "New request: " + titleVal }
+      };
+
+      try {
+        await fetch("https://onesignal.com/api/v1/notifications", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Basic " + restApiKey
+          },
+          body: JSON.stringify(notificationData)
+        });
+      } catch (error) {
+        console.error("حدث خطأ أثناء إرسال الإشعار:", error);
+      }
+    };
+
+    sendNotification();
+
+
+
+
+
+
 
     document.getElementById("title").value = '';
     document.getElementById("description").value = '';
@@ -233,7 +335,7 @@ async function confirmRequest(id) {
     .update({ status: 'completed' })
     .eq('id', id);
     
-  if (error) alert("خطأ في التأكيد: " + error.message);
+  if (error) showToast("خطأ في التأكيد: " + error.message,"error");
   else loadRequests();
 }
 
@@ -276,7 +378,8 @@ async function viewOffers(requestId, requestTitle) {
 }
 
 async function acceptOffer(offerId, requestId) {
-  if (!confirm("هل أنت متأكد من قبول هذا العرض؟")) return;
+  if (!(await customConfirm("هل أنت متأكد من قبول هذا العرض؟"))) return;
+
 
   try {
     const { error: offerError } = await client
@@ -286,7 +389,7 @@ async function acceptOffer(offerId, requestId) {
 
     if (offerError) {
        console.error("Offer Error:", offerError);
-       alert("فشل تحديث العرض: " + offerError.message + "\nDetails: " + offerError.details);
+       showToast("فشل تحديث العرض: " + offerError.message + "\nDetails: " + offerError.details,"error");
        return;
     }
 
@@ -300,16 +403,16 @@ async function acceptOffer(offerId, requestId) {
 
     if (requestError) {
        console.error("Request Error:", requestError);
-       alert("فشل تحديث الطلب: " + requestError.message + "\nDetails: " + requestError.details);
+       showToast("فشل تحديث الطلب: " + requestError.message + "\nDetails: " + requestError.details,"error");
        return;
     }
 
-    alert("تم القبول بنجاح!");
+    showToast("تم القبول بنجاح!");
     document.getElementById("offers_section").innerHTML = "";
     loadRequests();
 
   } catch (err) {
-    alert("خطأ غير متوقع: " + err.message);
+    showToast("خطأ غير متوقع: " + err.message,"error");
   }
 }
 
@@ -325,15 +428,58 @@ client.auth.onAuthStateChange((event, session) => {
 
 
 // دالة لإظهار الرسالة المنبثقة المخصصة
-function showToast(message) {
+// دالة لإظهار الرسالة المنبثقة المخصصة (مع دعم الألوان)
+function showToast(message, type = 'success') {
   const toast = document.getElementById("toast");
   toast.innerText = message;
+  
+  // تغيير لون الرسالة حسب نوعها
+  if (type === 'error') {
+    toast.style.backgroundColor = '#dc3545'; // أحمر للخطأ
+    toast.style.color = '#fff';
+  } else if (type === 'warning') {
+    toast.style.backgroundColor = '#ffc107'; // أصفر للتنبيه
+    toast.style.color = '#333'; // نص داكن ليناسب اللون الأصفر
+  } else {
+    toast.style.backgroundColor = '#28a745'; // أخضر للنجاح (الافتراضي)
+    toast.style.color = '#fff';
+  }
+
   toast.classList.add("show");
   
   // إخفاء الرسالة بعد 3 ثواني
   setTimeout(function(){
     toast.classList.remove("show");
   }, 3000);
+}
+
+
+
+
+
+
+function customConfirm(message) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("confirmModal");
+    const msgPara = document.getElementById("confirmMsg");
+    const yesBtn = document.getElementById("btnYes");
+    const noBtn = document.getElementById("btnNo");
+
+    msgPara.innerText = message;
+    modal.style.display = "flex"; // إظهار النافذة
+
+    // عند الضغط على نعم
+    yesBtn.onclick = () => {
+      modal.style.display = "none";
+      resolve(true);
+    };
+
+    // عند الضغط على إلغاء
+    noBtn.onclick = () => {
+      modal.style.display = "none";
+      resolve(false);
+    };
+  });
 }
 
 
