@@ -6,15 +6,7 @@
   <title>Student App</title>
   <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "47e8687b-793a-4512-b51b-53c6b3d1777f",
-    });
-  });
-</script>
+
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -269,36 +261,31 @@ async function createRequest() {
 
 
 
-    // إرسال الإشعار عبر OneSignal
-    const sendNotification = async () => {
-      const appId = "47e8687b-793a-4512-b51b-53c6b3d1777f"; 
-      const restApiKey = "Os_v2_app_i7ugq63zhjcrfni3kpdlhulxp566xhzg7b5uuhmnh5eopw2qajhtwxe7bxxem2hitj3z72difczi5reuuijjtywyau2sputmhhmzlzi"; // المفتاح الذي شاركته
+    async function sendWebPushNotification(titleVal) {
+  const webpushrKey = "ضع_هنا_REST_API_KEY"; 
+  const webpushrAuthToken = "ضع_هنا_AUTH_TOKEN"; 
 
-      const notificationData = {
-        app_id: appId,
-        // هذا الفلتر مهم جداً: يضمن إرسال الإشعار لمن يمتلكون علامة "provider" فقط
-        filters: [
-          {"field": "tag", "key": "role", "relation": "=", "value": "provider"}
-        ],
-        headings: { "ar": "طلب خدمة جديد", "en": "New Service Request" },
-        contents: { "ar": "تم إضافة طلب جديد: " + titleVal, "en": "New request: " + titleVal }
-      };
+  const payload = {
+    title: "طلب خدمة جديد 🛠️",
+    message: "هناك طلب صيانة جديد لجهاز: " + titleVal,
+    target_url: "https://appteche.netlify.app/provider.html"
+  };
 
-      try {
-        await fetch("https://onesignal.com/api/v1/notifications", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Basic " + restApiKey
-          },
-          body: JSON.stringify(notificationData)
-        });
-      } catch (error) {
-        console.error("حدث خطأ أثناء إرسال الإشعار:", error);
-      }
-    };
-
-    sendNotification();
+  try {
+    await fetch("https://api.webpushr.com/v1/notification/send/all", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "webpushrKey": webpushrKey,
+        "webpushrAuthToken": webpushrAuthToken
+      },
+      body: JSON.stringify(payload)
+    });
+    console.log("Notification Sent!");
+  } catch (err) {
+    console.error("Error sending notification:", err);
+  }
+}
 
 
 
@@ -497,7 +484,7 @@ function customConfirm(message) {
 </script>
 
 
-
+<script>(function(w,d, s, id) {if(typeof(w.webpushr)!=='undefined') return;w.webpushr=w.webpushr||function(){(w.webpushr.q=w.webpushr.q||[]).push(arguments)};var js, fjs = d.getElementsByTagName(s)[0];js = d.createElement(s); js.id = id;js.async=1;js.src = "https://cdn.webpushr.com/app.min.js";fjs.parentNode.appendChild(js);}(window,document, 'script', 'webpushr-jssdk'));webpushr('setup',{'key':'BHrc9wbMSrEG5P0UlMHCz0KabnW6Diprh-3o4DI83vMxYOcaH5AkhecvqeaK2uH58Uxi2dIi9Za-kNPdq_RxhJA' });</script>
 
 </body>
 </html>
